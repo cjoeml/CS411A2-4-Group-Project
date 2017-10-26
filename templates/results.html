@@ -10,8 +10,11 @@
     {% if user != '' %}
         <h4>{{ user }}</h4>
         {% for status in statuses %}
-        <p>{{ status.text }}</p>
+          <p>{{ status.text }}</p>
         {% endfor %}
+
+    {% else %}
+        <h4> Invalid User </h4>
     {% endif %}
     </div>
   </body>
