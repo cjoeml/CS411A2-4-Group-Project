@@ -1,0 +1,7 @@
+Collection: Users
+	
+    username: StringField // name for users
+    is_authenticated = BooleanField // is a user logged in through twitter?
+    social_id = StringField //  what social platform this record is for (twitter,fb etc)
+    wordcloud = StringField // stored wordclouds generated
+    faketweets = StringField // stored fake tweets generated
