@@ -34,11 +34,9 @@ def main():
 	text_model = ""
 
 	for status in statuses:
-		# print("N: " + status.text + "\n")
 		text_model = text_model + " " + status.text + " "
 
 	for old_status in older_statuses:
-		# print("O: " + old_status.text + "\n" )
 		text_model = text_model + " " + old_status.text + " "
 
 	# print(len(statuses))
