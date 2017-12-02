@@ -7,6 +7,7 @@
 <body>
 <h1>Post Like Me</h1>
 <ul class=navigation>
+  <li><a href="{{ url_for('index') }}">Home</a></li>
   {% if g.user %}
   <li><a href="{{ url_for('logout') }}">sign out [{{ g.user.screen_name}}]</a></li>
   {% else %}

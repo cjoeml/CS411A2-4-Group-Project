@@ -70,6 +70,8 @@ def before_request():
 def index():
     markov_t = ""
     mkTweet = ""
+    s = ''
+    statuses = None
     tweets = None
     if g.user is not None:
         resp = twitter.request('statuses/home_timeline.json')
@@ -78,6 +80,7 @@ def index():
 
         try:
             statuses = api.GetUserTimeline(screen_name=g.user['screen_name'], count="200")
+            s = statuses[0:12]
             for status in statuses:
                 markov_t = markov_t + " " + status.text.strip('\"') + " "
                 mkText = markovify.Text(markov_t)
@@ -88,6 +91,7 @@ def index():
         else:
             flash('Unable to load tweets from Twitter. Getting statuses from api call.')
             statuses = api.GetUserTimeline(screen_name=g.user['screen_name'], count="200")
+            s = statuses[0:12]
             try:
                 for status in statuses:
                     markov_t = markov_t + " " + status.text + " "
@@ -95,8 +99,9 @@ def index():
                     mkTweet = mkText.make_short_sentence(140)
             except:
                 mkTweet = "Not enough tweets to display Markov tweet."
+    print(mkTweet)
     # mkTweet = 'e'
-    return render_template('index2.html', tweets=tweets, mkv=mkTweet)
+    return render_template('index2.html', tweets=s, mkv=mkTweet)
 
 
 @app.route('/tweet', methods=['POST'])
@@ -150,15 +155,26 @@ def results():
         user = request.form['search_input']
 
     statuses = ""
-
+    mkTweet = ""
+    markov_t = ""
+    s = ''
     ## Basic API call ##
     try:
         statuses = api.GetUserTimeline(screen_name=user)
-    except:
-        user = ""
+        # statuses = api.GetUserTimeline(screen_name=g.user['screen_name'], count="200")
+        s = statuses[0:12]
+        for status in statuses:
+            markov_t = markov_t + " " + status.text.strip('\"') + " "
+            mkText = markovify.Text(markov_t)
+            mkTweet = mkText.make_short_sentence(140)
+            print(mkTweet)
+    except Exception as e:
+        statuses = ""
+        mkTweet = ""
+        print(e)
 
     ## Build page ##
-    return render_template('results.html', user=user, statuses=statuses)
+    return render_template('results2.html', user=user, tweets=s, mkv=mkTweet)
 
 
 if __name__ == '__main__':
