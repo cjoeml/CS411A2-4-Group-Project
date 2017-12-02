@@ -3,20 +3,63 @@
 <title>{% block title %}Post Like Me{% endblock %}</title>
 <link rel=stylesheet type=text/css href="{{ url_for('static',
   filename='style.css') }}">
+<link href="https://fonts.googleapis.com/css?family=Saira+Semi+Condensed" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css?family=Oswald" rel="stylesheet"> 
+<link href="https://fonts.googleapis.com/css?family=Passion+One|Roboto" rel="stylesheet"> 
 </head>
 <body>
-<h1>Post Like Me</h1>
-<ul class=navigation>
-  <li><a href="{{ url_for('index') }}">Home</a></li>
   {% if g.user %}
-  <li><a href="{{ url_for('logout') }}">sign out [{{ g.user.screen_name}}]</a></li>
+	<div id="overlay2">     
+		<a href="{{ url_for('logout') }}">[ Sign Out ]</a>
+	</div>
+
   {% else %}
-  <li><a href="{{ url_for('login') }}">sign in</a></li>
+	<div id="overlay">     
+	<a href="{{ url_for('login') }}"><img src="{{
+        url_for('static', filename='sign-in.png') }}" alt="sign in"></a>
+	</div>
   {% endif %}
-</ul>
+<div class="container">
+	<div class="top-menu">
+	<div class="menu-tab" id="mt">
+	<a href="{{ url_for('index') }}" id="red" onmouseover="showGT('gt1')" onmouseout="hideGT('gt1')">Post Like Me</a>
+
+		<!-- <a href="#" class="gt" id="gt1">> </a><a target="_blank" href="https://youtube.com" id="red" onmouseover="showGT('gt1')" onmouseout="hideGT('gt1')">youtube</a> -->
+<!-- 		<a href="#" class="gt" id="gt2">> </b></a><a target="_blank" href="https://twitch.tv" id="purple" onmouseover="showGT('gt2')" onmouseout="hideGT('gt2')">twitch</a> 
+		<a href="#" class="gt" id="gt3">> </b></a><a target="_blank" href="https://www.messenger.com" id="blue" onmouseover="showGT('gt3')" onmouseout="hideGT('gt3')">messenger</a>
+
+		<a href="#" class="gt" id="gt4">> </b></a><a target="_blank" href="https://github.com" id="gray" onmouseover="showGT('gt4')" onmouseout="hideGT('gt4')">github</a>
+
+		<a href="#" class="gt" id="gt5">> </b></a><a target="_blank" href="https://play.spotify.com/" id="green" onmouseover="showGT('gt5')" onmouseout="hideGT('gt5')">spotify</a> -->
+	</div>
+	</div>
+</div>
+<h1>Post Like Me</h1>
+	
+   {% if g.user %}
+   <p>
+      Hello, {{ g.user.screen_name }}. 
+   </p>
+   {% endif %}
 {% for message in get_flashed_messages() %}
   <p class=message>{{ message }}</p>
 {% endfor %}
 {% block body %}{% endblock %}
+
+<script>
+function showGT(id) {
+	var gt = document.getElementById(id);
+	gt.style.visibility = "visible";
+	gt.style.opacity = "1";
+}
+
+function hideGT(id) {
+	var gt = document.getElementById(id);
+	gt.style.visibility = "hidden";
+	gt.style.opacity = "0";
+}
+</script>
+
 </body>
+
 </html>

@@ -1,9 +1,6 @@
 {% extends "layout.html" %}
 {% block body %}
   {% if g.user %}
-    <p>
-      Hello {{ g.user.screen_name }}. 
-    </p>
     {% if tweets %}
     <h3>Timeline</h3>
     <ul>
@@ -13,14 +10,17 @@
     {% endfor %}
     </ul>
     {% endif %}
-    <h3> Generated Tweet </h3>
+   <h3>Generated Tweet </h3>
+    <div class="generated">
+    <div class="center">
     {% if mkv %}
-    <ul>
-      <li>{{ mkv }} </li>
-	</ul>
-    {% else %}
-      <h4> Tweet could not be generated. This user may not have enough tweets.</h4>
-    {% endif %}
+      {{ mkv }}
+	{% else %}
+      Tweet could not be generated. This user may not have enough tweets.
+    {% endif %} 
+    </div>
+    </div>
+
   {% else %}
 
     <p>
