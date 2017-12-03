@@ -2,6 +2,12 @@
 {% block body %}
   {% if g.user %}
     {% if tweets %}
+    <script type="text/javascript">
+          var words_in_tweets = {{words_in_tweets|safe}};
+          var word_frequency = {{word_frequency|tojson|safe}};
+          var number_of_words = {{number_of_words}};
+          var largest_occurence = {{largest_occurence}}
+    </script>
     <h3>Timeline</h3>
     <ul>
     {% for tweet in tweets %}
@@ -15,12 +21,15 @@
     <div class="center">
     {% if mkv %}
       {{ mkv }}
+      <div class="wordcloud-container"> 
+      <h3 style="text-align=center;">{{user}}'s Word Cloud </h3>
+      </div>
+      <script src="{{ url_for('static', filename='js/wordcloudbundle.js') }}"></script>
 	{% else %}
       Tweet could not be generated. This user may not have enough tweets.
     {% endif %} 
     </div>
     </div>
-
   {% else %}
 
     <p>

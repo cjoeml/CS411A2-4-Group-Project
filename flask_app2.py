@@ -10,6 +10,7 @@ from pymongo import MongoClient # Database connector
 import twitter
 import json
 import re
+import collections
 
 app = Flask(__name__)
 app.debug = True
@@ -59,7 +60,7 @@ twitter = oauth.remote_app(
     authorize_url='https://api.twitter.com/oauth/authorize'
 )
 
-print(twitter)
+#print(twitter)
 
 @twitter.tokengetter
 def get_twitter_token():
@@ -81,6 +82,9 @@ def index():
     markov_t, mkTweet, s = '', '', ''
     statuses, tweets = None, None
     prev_tweet_list = []
+    words = []
+    word_frequency = {"blank":0}
+    largest_occurence = 0
     if g.user is not None:
         resp = twitter.request('statuses/home_timeline.json')
         
@@ -102,30 +106,31 @@ def index():
             
         except Exception as e:
             mkTweet = "Not enough tweets to display Markov tweet."
-            
+
+        rgx = re.compile("(\w[\w']*\w|\w)")
+
+        for tweet in status_bodies:
+            words_in_tweets = rgx.findall(tweet)
+            for word in words_in_tweets:
+                words.append(word)
+        word_frequency = collections.Counter(words)
+        
     #print(mkTweet)
     # mkTweet = 'e'
-    
-    rgx = re.compile("(\w[\w']*\w|\w)")
-
-    words = []
-    for tweet in status_bodies:
-        words_in_tweets = rgx.findall(tweet)
-        for word in words_in_tweets:
-            words.append(word)
-
     cursor = tweet_db.find({})
     for document in cursor: 
-        pprint(document['tweet'])
+        #pprint(document['tweet'])
         if document['tweet'] not in prev_tweet_list:
             prev_tweet_list.append(document['tweet'])
-    print(prev_tweet_list)
+    
     try:
         tweet_db.insert({ "name":g.user['screen_name'], 'tweet':mkTweet })
     except Exception as e:
         print(e)
 
-    return render_template('index2.html', tweets=s, mkv=mkTweet,prev_t=prev_tweet_list, words_in_tweets=words)
+    return render_template('index2.html', tweets=s, mkv=mkTweet,prev_t=prev_tweet_list, 
+        words_in_tweets=list(set(words)), number_of_words = len(words), word_frequency=collections.Counter(words),
+        largest_occurence=max(word_frequency.values()))
 
 
 
@@ -181,11 +186,14 @@ def results():
     mkTweet = ""
     markov_t = ""
     s = ''
+    words = []
+    word_frequency = {"blank":0}
+    largest_occurence = 0
     ## Basic API call ##
     try:
         statuses = api.GetUserTimeline(screen_name=user, count="200")
         # statuses = api.GetUserTimeline(screen_name=g.user['screen_name'], count="200")
-        print("LENGTH: " + str(len(statuses)))
+        #print("LENGTH: " + str(len(statuses)))
         s = statuses[0:12]
         status_bodies = []
         for status in statuses:
@@ -195,15 +203,45 @@ def results():
             markov_t = markov_t + " " + status_text + " "
             mkText = markovify.Text(markov_t)
             mkTweet = mkText.make_short_sentence(140)
-            print(mkTweet)
+            #print(mkTweet)
+
+            rgx = re.compile("(\w[\w']*\w|\w)")
+
+            for tweet in status_bodies:
+                http_url_location = [(m.start(0), m.end(0)) for m in re.finditer("http",tweet)]
+                
+                if len(http_url_location) > 0:
+                    for loc in http_url_location:
+                        start = loc[0]
+                        end = loc[1]
+
+                        next_space = -1
+                        for i in range(start,len(tweet)):
+                            print(tweet[i])
+                            if tweet[i] == " ":
+                                next_space = i
+                        
+                        if next_space == -1:
+                            next_space = end
+                        #print(start)
+                        #print(next_space)
+                        tweet = tweet[0:start] + tweet[next_space:]
+
+            #print(edited_tweet)
+
+            words_in_tweets = rgx.findall(tweet)
+            for word in words_in_tweets:
+                    words.append(word)
+            word_frequency = collections.Counter(words)
     except Exception as e:
         statuses = ""
         mkTweet = ""
         print(e)
 
     ## Build page ##
-    return render_template('results2.html', user=user, tweets=s, mkv=mkTweet,tweet_bodies=status_bodies)
-
+    return render_template('results2.html', user=user, tweets=s, mkv=mkTweet,
+        words_in_tweets=list(set(words)), number_of_words = len(words), word_frequency=collections.Counter(words),
+        largest_occurence=max(word_frequency.values()))
 
 if __name__ == '__main__':
     app.run()

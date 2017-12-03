@@ -10057,10 +10057,12 @@ var d3 = require("d3"),
 
 var fill = d3.scale.category20();
 
+var normalization_value = largest_occurence / number_of_words;
+
 var layout = cloud()
-    .size([500, 500])
+    .size([750,500])
     .words(words_in_tweets.map(function(d) {
-      return {text: d, size: 10 + Math.random() * 90, test: "haha"};
+      return {text: d, size: 20 + ((word_frequency[d] /  number_of_words) / normalization_value) * 90};
     }))
     .padding(5)
     .rotate(function() { return ~~(Math.random() * 2) * 90; })
@@ -10071,7 +10073,7 @@ var layout = cloud()
 layout.start();
 
 function draw(words) {
-
+  console.log(number_of_words);
   d3.select(".wordcloud-container").append("svg")
       .attr("width", layout.size()[0])
       .attr("height", layout.size()[1])

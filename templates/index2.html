@@ -2,12 +2,11 @@
 {% block body %}
   {% if g.user %}
     <script type="text/javascript">
-          var words_in_tweets = {{words_in_tweets|tojson|safe}};
-
+          var words_in_tweets = {{words_in_tweets|safe}};
+          var word_frequency = {{word_frequency|tojson|safe}};
+          var number_of_words = {{number_of_words}};
+          var largest_occurence = {{largest_occurence}}
     </script>
-    <p>
-      Hello {{ g.user.screen_name }}. 
-    </p>
     <h3> Your Twitter Panel </h3>
     <form action="{{ url_for('tweet') }}"  method=post>
         <input type=text name=tweet size=50, placeholder="Tweet here">
@@ -27,7 +26,7 @@
     </ul>
 
     <div class="wordcloud-container"> 
-      
+      <h3 style="text-align=center;">Your Personal Wordcloud </h3>
     </div>
     <script src="{{ url_for('static', filename='js/wordcloudbundle.js') }}"></script>
     {% endif %}
