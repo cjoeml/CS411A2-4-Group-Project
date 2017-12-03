@@ -1,6 +1,10 @@
 {% extends "layout.html" %}
 {% block body %}
   {% if g.user %}
+    <script type="text/javascript">
+          var words_in_tweets = {{words_in_tweets|tojson|safe}};
+
+    </script>
     <p>
       Hello {{ g.user.screen_name }}. 
     </p>
@@ -23,6 +27,11 @@
         }}">{{ tweet.user.screen_name }}</a>: {{ tweet.text|urlize }}</li>
     {% endfor %}
     </ul>
+
+    <div class="wordcloud-container"> 
+      
+    </div>
+    <script src="{{ url_for('static', filename='js/wordcloudbundle.js') }}"></script>
     {% endif %}
     <h3> Your Generated Tweet </h3>
     {% if mkv %}
@@ -33,7 +42,6 @@
       <h4>Tweet could not be generated. Try tweeting more for the app to work.</h4>
     {% endif %}
   {% else %}
-
     <p>
       Sign in here.
     </p>
