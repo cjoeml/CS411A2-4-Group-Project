@@ -9,6 +9,7 @@ from flask_bootstrap import Bootstrap
 from pymongo import MongoClient # Database connector
 import twitter
 import json
+import re
 
 app = Flask(__name__)
 app.debug = True
@@ -82,31 +83,37 @@ def index():
     prev_tweet_list = []
     if g.user is not None:
         resp = twitter.request('statuses/home_timeline.json')
+        
         if resp.status == 200:
             tweets = resp.data
 
         try:
             statuses = api.GetUserTimeline(screen_name=g.user['screen_name'], count="200")
             s = statuses[0:12]
+            status_bodies = []
+            
             for status in statuses:
-                markov_t = markov_t + " " + status.text.strip('\"') + " "
-            mkText = markovify.Text(markov_t)
-            mkTweet = mkText.make_short_sentence(140)
-        except: 
-            mkTweet = "Not enough tweets to display Markov tweet."
-
-        else:
-            # flash('Unable to load tweets from Twitter. Getting statuses from api call.')
-            statuses = api.GetUserTimeline(screen_name=g.user['screen_name'], count="200")
-            s = statuses[0:12]
-            try:
-                for status in statuses:
-                    markov_t = markov_t + " " + status.text + " "
+                status_text = status.text.strip('\"')
+                status_bodies.append(status_text)
+            
+                markov_t = markov_t + " " + status_text + " "
                 mkText = markovify.Text(markov_t)
                 mkTweet = mkText.make_short_sentence(140)
-            except:
-                mkTweet = "Not enough tweets to display Markov tweet."
-    print(mkTweet)
+            
+        except Exception as e:
+            mkTweet = "Not enough tweets to display Markov tweet."
+            
+    #print(mkTweet)
+    # mkTweet = 'e'
+    
+    rgx = re.compile("(\w[\w']*\w|\w)")
+
+    words = []
+    for tweet in status_bodies:
+        words_in_tweets = rgx.findall(tweet)
+        for word in words_in_tweets:
+            words.append(word)
+
     cursor = tweet_db.find({})
     for document in cursor: 
         pprint(document['tweet'])
@@ -117,7 +124,9 @@ def index():
         tweet_db.insert({ "name":g.user['screen_name'], 'tweet':mkTweet })
     except Exception as e:
         print(e)
-    return render_template('index2.html', tweets=s, mkv=mkTweet, prev_t=prev_tweet_list)
+
+    return render_template('index2.html', tweets=s, mkv=mkTweet,prev_t=prev_tweet_list, words_in_tweets=words)
+
 
 
 @app.route('/tweet', methods=['POST'])
@@ -178,8 +187,12 @@ def results():
         # statuses = api.GetUserTimeline(screen_name=g.user['screen_name'], count="200")
         print("LENGTH: " + str(len(statuses)))
         s = statuses[0:12]
+        status_bodies = []
         for status in statuses:
-            markov_t = markov_t + " " + status.text.strip('\"') + " "
+            status_text = status.text.strip('\"')
+            status_bodies.append(status_text)
+            
+            markov_t = markov_t + " " + status_text + " "
             mkText = markovify.Text(markov_t)
             mkTweet = mkText.make_short_sentence(140)
             print(mkTweet)
@@ -189,7 +202,7 @@ def results():
         print(e)
 
     ## Build page ##
-    return render_template('results2.html', user=user, tweets=s, mkv=mkTweet)
+    return render_template('results2.html', user=user, tweets=s, mkv=mkTweet,tweet_bodies=status_bodies)
 
 
 if __name__ == '__main__':
