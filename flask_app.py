@@ -1,16 +1,20 @@
-##################
-## Dependencies ##
-##################
-import flask
-from flask import Flask, render_template, request
+# coding: utf-8
+from pprint import pprint
+import markovify 
+from flask import Flask
+from flask import g, session, request, url_for, flash
+from flask import redirect, render_template
 from flask_oauthlib.client import OAuth
 from flask_bootstrap import Bootstrap
+from pymongo import MongoClient # Database connector
 import twitter
 import json
+import re
+import collections
 
-
-# import subprocess 
-# This is whether we want to open an entire Python file with this flask app
+app = Flask(__name__)
+app.debug = True
+app.secret_key = 'development'
 
 ##################
 
@@ -30,6 +34,13 @@ def get_keys_and_secrets():
 
 ####################
 
+## Init db ##
+client = MongoClient('localhost', 27017)    #Configure the connection to the database
+db = client.twitterdb #Select the database
+tweet_db = db.tweets
+result = tweet_db.delete_many({}) # Reset every instance because why not
+
+
 ## API calling here ##
 key_tuple = get_keys_and_secrets()
 api = twitter.Api(consumer_key=key_tuple[0],
@@ -37,83 +48,128 @@ api = twitter.Api(consumer_key=key_tuple[0],
                   access_token_key=key_tuple[2],
                   access_token_secret=key_tuple[3])
 
-## TODO: add Facebook here ##
+oauth = OAuth(app)
 
-########################################
-## Creating the base backend skeleton ##
-########################################
-def create_app():
-    app = Flask(__name__)
-    app.secret_key = 'development key'
-    Bootstrap(app)
-    return app
-
-app = create_app()
-oauth = OAuth()
-twitter = oauth.remote_app('twitter',
-    # unless absolute urls are used to make requests, this will be added
-    # before all URLs.  This is also true for request_token_url and others.
-    base_url='https://api.twitter.com/1/',
-    # where flask should look for new request tokens
-    request_token_url='https://api.twitter.com/oauth/request_token',
-    # where flask should exchange the token with the remote application
-    access_token_url='https://api.twitter.com/oauth/access_token',
-    # twitter knows two authorizatiom URLs.  /authorize and /authenticate.
-    # they mostly work the same, but for sign on /authenticate is
-    # expected because this will give the user a slightly different
-    # user interface on the twitter side.
-    authorize_url='https://api.twitter.com/oauth/authenticate',
-    # the consumer keys from the twitter application registry.
+twitter = oauth.remote_app(
+    'twitter',
     consumer_key=key_tuple[0],
-    consumer_secret=key_tuple[1])
+    consumer_secret=key_tuple[1],
+    base_url='https://api.twitter.com/1.1/',
+    request_token_url='https://api.twitter.com/oauth/request_token',
+    access_token_url='https://api.twitter.com/oauth/access_token',
+    authorize_url='https://api.twitter.com/oauth/authorize'
+)
 
 @twitter.tokengetter
 def get_twitter_token():
-  if current_user.is_authenticated():
-      return (current_user.token, current_user.secret)
-  else:
-      return None
+    if 'twitter_oauth' in session:
+        resp = session['twitter_oauth']
+        return resp['oauth_token'], resp['oauth_token_secret']
 
 
-###########
-## Pages ##
-###########
-
-@app.route('/login')
-def login():
-  if current_user.is_authenticated():
-      return redirect('/')
-  return twitter.authorize(callback=url_for('oauth_authorized',
-      next=request.args.get('next') or request.referrer or None))
-
-@app.route('/oauth-authorized')
-@twitter.authorized_handler
-def oauth_authorized(resp):
-  next_url = request.args.get('next') or url_for('index')
-  if resp is None:
-      return redirect(next_url)
-
-  this_account = Account.query.filter_by(username = resp['screen_name']).first()
-  if this_account is None:
-      new_account = Account(resp['screen_name'], "", resp['oauth_token'], resp['oauth_token_secret'])
-      db.session.add(new_account)
-      db.session.commit()
-      login_user(new_account)
-  else:
-      login_user(this_account)
-
-  return redirect(next_url)
+@app.before_request
+def before_request():
+    g.user = None
+    if 'twitter_oauth' in session:
+        g.user = session['twitter_oauth']
 
 
 ## Index page ##
 @app.route("/", methods=['GET'])
 def index():
-    access_token = session.get('access_token')
-    if access_token is None:
-        return redirect(url_for('login'))
-    access_token = access_token[0] 
+    markov_t, mkTweet, s = '', '', ''
+    statuses, tweets = None, None
+    prev_tweet_list = []
+    words = []
+    word_frequency = {"blank":0}
+    largest_occurence = 0
+    if g.user is not None:
+        resp = twitter.request('statuses/home_timeline.json')
+        
+        if resp.status == 200:
+            tweets = resp.data
 
-    return render_template('index.html')
+        try:
+            statuses = api.GetUserTimeline(screen_name=g.user['screen_name'], count="200")
+            s = statuses[0:12]
+            status_bodies = []
+            
+            for status in statuses:
+                status_text = status.text.strip('\"')
+                status_bodies.append(status_text)
+            
+                markov_t = markov_t + " " + status_text + " "
+                mkText = markovify.Text(markov_t)
+                mkTweet = mkText.make_short_sentence(140)
+            
+        except Exception as e:
+            mkTweet = "Not enough tweets to display Markov tweet."
+
+        rgx = re.compile("(\w[\w']*\w|\w)")
+
+        for tweet in status_bodies:
+            words_in_tweets = rgx.findall(tweet)
+            for word in words_in_tweets:
+                words.append(word)
+        word_frequency = collections.Counter(words)
+
+    cursor = tweet_db.find({})
+    for document in cursor: 
+        if document['tweet'] not in prev_tweet_list:
+            prev_tweet_list.append(document['tweet'])
+    
+    try:
+        tweet_db.insert({ "name":g.user['screen_name'], 'tweet':mkTweet })
+    except Exception as e:
+        print(e)
+
+    return render_template('index.html', tweets=s, mkv=mkTweet,prev_t=prev_tweet_list, 
+        words_in_tweets=list(set(words)), number_of_words = len(words), word_frequency=collections.Counter(words),
+        largest_occurence=max(word_frequency.values()))
+
+
+
+@app.route('/tweet', methods=['POST'])
+def tweet():
+    if g.user is None:
+        return redirect(url_for('login', next=request.url))
+    status = request.form['tweet']
+    if not status:
+        return redirect(url_for('index'))
+    resp = twitter.post('statuses/update.json', data={'status': status})
+
+    if resp.status == 403:
+        flash("Error: #%d, %s " % (
+            resp.data.get('errors')[0].get('code'),
+            resp.data.get('errors')[0].get('message'))
+        )
+    elif resp.status == 401:
+        flash('Authorization error with Twitter.')
+    else:
+        flash('Successfully tweeted your tweet (ID: #%s)' % resp.data['id'])
+    return redirect(url_for('index'))
+
+
+@app.route('/login')
+def login():
+    callback_url = url_for('oauthorized', next=request.args.get('next'))
+    return twitter.authorize(callback=callback_url or request.referrer or None)
+
+
+@app.route('/logout')
+def logout():
+    session.pop('twitter_oauth', None)
+    return redirect(url_for('index'))
+
+
+@app.route('/oauthorized')
+def oauthorized():
+    resp = twitter.authorized_response()
+    if resp is None:
+        flash('You denied the request to sign in.')
+    else:
+        session['twitter_oauth'] = resp
+    return redirect(url_for('index'))
 
 ## Results page - this is where we POST ##
 @app.route("/results", methods=['GET','POST'])
@@ -122,19 +178,58 @@ def results():
         user = request.form['search_input']
 
     statuses = ""
-
+    mkTweet = ""
+    markov_t = ""
+    s = ''
+    words = []
+    word_frequency = {"blank":0}
+    largest_occurence = 0
     ## Basic API call ##
     try:
-        statuses = api.GetUserTimeline(screen_name=user)
-    except:
-        user = ""
+        statuses = api.GetUserTimeline(screen_name=user, count="200")
+        s = statuses[0:12]
+        status_bodies = []
+        for status in statuses:
+            status_text = status.text.strip('\"')
+            status_bodies.append(status_text)
+            
+            markov_t = markov_t + " " + status_text + " "
+            mkText = markovify.Text(markov_t)
+            mkTweet = mkText.make_short_sentence(140)
+
+            rgx = re.compile("(\w[\w']*\w|\w)")
+
+            for tweet in status_bodies:
+                http_url_location = [(m.start(0), m.end(0)) for m in re.finditer("http",tweet)]
+                
+                if len(http_url_location) > 0:
+                    for loc in http_url_location:
+                        start = loc[0]
+                        end = loc[1]
+
+                        next_space = -1
+                        for i in range(start,len(tweet)):
+                            if tweet[i] == " ":
+                                next_space = i
+                        
+                        if next_space == -1:
+                            next_space = end
+
+                        tweet = tweet[0:start] + tweet[next_space:]
+
+            words_in_tweets = rgx.findall(tweet)
+            for word in words_in_tweets:
+                    words.append(word)
+            word_frequency = collections.Counter(words)
+    except Exception as e:
+        statuses = ""
+        mkTweet = ""
+        print(e)
 
     ## Build page ##
-    return render_template('results.html', user=user, statuses=statuses)
+    return render_template('results.html', user=user, tweets=s, mkv=mkTweet,
+        words_in_tweets=list(set(words)), number_of_words = len(words), word_frequency=collections.Counter(words),
+        largest_occurence=max(word_frequency.values()))
 
-#############
-## Run App ##
-#############
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     app.run()

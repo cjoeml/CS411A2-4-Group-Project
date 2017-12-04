@@ -1,15 +1,70 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>TBD</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="static/bootstrap.min.css" rel="stylesheet" media="screen">
-  </head>
-  <body>
-    <div class="container">
-		<form method="POST" action="/results">
-			<input name ="search_input" type="text" placeholder="LAME" required>
-		    <input type="submit" value="Search">
-		</form>
+{% extends "layout.html" %}
+{% block body %}
+  {% if g.user %}
+    <script type="text/javascript">
+          var words_in_tweets = {{words_in_tweets|safe}};
+          var word_frequency = {{word_frequency|tojson|safe}};
+          var number_of_words = {{number_of_words}};
+          var largest_occurence = {{largest_occurence}}
+    </script>
+    <h3> Your Twitter Panel </h3>
+    <form action="{{ url_for('tweet') }}"  method=post>
+        <input type=text name=tweet size=50, placeholder="Tweet here">
+        <input type=submit value="Tweet">
+    </form>
+    <form method="POST" action="/results">
+      <input name ="search_input" size="50" type="text" placeholder="Search other user">
+      <input type="submit" value="Search">
+    </form>
+    {% if tweets %}
+    <h3>Your Timeline</h3>
+    <ul>
+    {% for tweet in tweets %}
+      <li><a href="http://twitter.com/{{ tweet.user.screen_name
+        }}">{{ tweet.user.screen_name }}</a>: {{ tweet.text|urlize }}</li>
+    {% endfor %}
+    </ul>
+
+    <div class="wordcloud-container"> 
+      <h3 style="text-align=center;">Your Personal Wordcloud </h3>
     </div>
-  </body>
+    <script src="{{ url_for('static', filename='js/wordcloudbundle.js') }}"></script>
+    {% endif %}
+    <h3> Your Generated Tweet </h3>
+    <div class="generated">
+    <div class="center">
+    {% if mkv %}
+
+      {{ mkv }} 
+      
+    {% else %}
+      Tweet could not be generated. Try tweeting more for the app to work.
+    {% endif %}
+    </div>
+    </div>
+
+    {% if prev_t %}
+      <h3> Total Unique Tweets This Session</h3>
+      <ul>
+      {% for tweet in prev_t %}
+      <li>
+        {{ tweet }}
+      </li>
+      {% endfor %}
+      </ul>
+    {% endif %}
+
+  {% else %}
+    <p>
+      Try ⟅ Post Like Me ⟆
+    </p>
+
+    <!-- <h3> A First Look </h3> -->
+    <img id="example" src="{{url_for('static', filename='SS.png') }}"></img>
+
+    <p>
+      <a href="{{ url_for('login') }}"><img src="{{
+        url_for('static', filename='sign-in.png') }}" alt="sign in"></a>
+    </p>
+  {% endif %}
+{% endblock %}
