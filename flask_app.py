@@ -171,6 +171,18 @@ def oauthorized():
         session['twitter_oauth'] = resp
     return redirect(url_for('index'))
 
+blackList = [ "the", "of", "and", "a", "to", "in", "is", 
+        "you", "that", "it", "he", "was", "for", "on", "are", "as", "with", 
+        "his", "they", "i", "at", "be", "this", "have", "from", "or", "one", 
+        "had", "by", "word", "but", "not", "what", "all", "were", "we", "when", 
+        "your", "can", "said", "there", "use", "an", "each", "which", "she", 
+        "do", "how", "their", "if", "will", "up", "other", "about", "out", "many", 
+        "then", "them", "these", "so", "some", "her", "would", "make", "like", 
+        "him", "into", "time", "has", "look", "two", "more", "write", "go", "see", 
+        "number", "no", "way", "could", "people",  "my", "than", "first", "water", 
+        "been", "call", "who", "oil", "its", "now", "find", "long", "down", "day", 
+        "did", "get", "come", "made", "may", "part"]
+
 ## Results page - this is where we POST ##
 @app.route("/results", methods=['GET','POST'])
 def results():
@@ -219,6 +231,7 @@ def results():
 
             words_in_tweets = rgx.findall(tweet)
             for word in words_in_tweets:
+                if word not in blackList and len(word) > 3:
                     words.append(word)
             word_frequency = collections.Counter(words)
     except Exception as e:
