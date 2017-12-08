@@ -110,13 +110,9 @@ def index():
         for tweet in status_bodies:
             words_in_tweets = rgx.findall(tweet)
             for word in words_in_tweets:
-                words.append(word)
-        # word_frequency = collections.Counter(words)
-
-            words_in_tweets = rgx.findall(tweet)
-            for word in words_in_tweets:
                 if word not in blackList and len(word) > 3:
                     words.append(word)
+                    
         word_frequency = collections.Counter(words)
 
     cursor = tweet_db.find({})
