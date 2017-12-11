@@ -108,6 +108,7 @@ def index():
             for word in words_in_tweets:
                 if word not in blackList and len(word) > 3:
                     words.append(word)
+                    
         word_frequency = collections.Counter(words)
 
     cursor = tweet_db.find({})
