@@ -20,8 +20,8 @@
     <h3>Your Timeline</h3>
     <ul>
     {% for tweet in tweets %}
-      <li><a href="http://twitter.com/{{ tweet.user.screen_name
-        }}">{{ tweet.user.screen_name }}</a>: {{ tweet.text|urlize }}</li>
+    
+      <li><a href="http://twitter.com/{{ tweet.user.screen_name}}">{{ tweet.user.screen_name }}</a>: {{ tweet.text|urlize }}</li>
     {% endfor %}
     </ul>
 

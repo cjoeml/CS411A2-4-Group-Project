@@ -1,5 +1,4 @@
 # coding: utf-8
-from pprint import pprint
 import markovify 
 from flask import Flask
 from flask import g, session, request, url_for, flash
@@ -40,7 +39,6 @@ db = client.twitterdb #Select the database
 tweet_db = db.tweets
 result = tweet_db.delete_many({}) # Reset every instance because why not
 
-
 ## API calling here ##
 key_tuple = get_keys_and_secrets()
 api = twitter.Api(consumer_key=key_tuple[0],
@@ -66,13 +64,11 @@ def get_twitter_token():
         resp = session['twitter_oauth']
         return resp['oauth_token'], resp['oauth_token_secret']
 
-
 @app.before_request
 def before_request():
     g.user = None
     if 'twitter_oauth' in session:
         g.user = session['twitter_oauth']
-
 
 ## Index page ##
 @app.route("/", methods=['GET'])
@@ -110,11 +106,6 @@ def index():
         for tweet in status_bodies:
             words_in_tweets = rgx.findall(tweet)
             for word in words_in_tweets:
-                words.append(word)
-        # word_frequency = collections.Counter(words)
-
-            words_in_tweets = rgx.findall(tweet)
-            for word in words_in_tweets:
                 if word not in blackList and len(word) > 3:
                     words.append(word)
         word_frequency = collections.Counter(words)
@@ -142,6 +133,7 @@ def tweet():
     status = request.form['tweet']
     if not status:
         return redirect(url_for('index'))
+
     resp = twitter.post('statuses/update.json', data={'status': status})
 
     if resp.status == 403:
@@ -154,7 +146,6 @@ def tweet():
     else:
         flash('Successfully tweeted your tweet (ID: #%s)' % resp.data['id'])
     return redirect(url_for('index'))
-
 
 @app.route('/login')
 def login():
@@ -187,7 +178,9 @@ blackList = [ "the", "of", "and", "a", "to", "in", "is",
         "him", "into", "time", "has", "look", "two", "more", "write", "go", "see", 
         "number", "no", "way", "could", "people",  "my", "than", "first", "water", 
         "been", "call", "who", "oil", "its", "now", "find", "long", "down", "day", 
-        "did", "get", "come", "made", "may", "part"]
+        "did", "get", "come", "made", "may", "part", "/", "'", '"', ",", "[", "]", "\\"]
+
+charList = ['abcdefghijklmnopqrstuvwxyz']
 
 ## Results page - this is where we POST ##
 @app.route("/results", methods=['GET','POST'])
