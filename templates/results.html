@@ -8,7 +8,8 @@
           var number_of_words = {{number_of_words}};
           var largest_occurence = {{largest_occurence}}
     </script>
-    <h3>Timeline</h3>
+    <h3>{{ user }}'s Timeline</h3>
+    {% if user != "" %}
     <ul>
     {% for tweet in tweets %}
       <li><a href="http://twitter.com/{{ tweet.user.screen_name
@@ -28,6 +29,10 @@
 	{% else %}
       Tweet could not be generated. This user may not have enough tweets.
     {% endif %} 
+
+    {% else %}
+      <h3> Invalid User </h3>
+    {% endif %}
     </div>
     </div>
 

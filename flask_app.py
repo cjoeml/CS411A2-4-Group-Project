@@ -183,6 +183,7 @@ blackList = [ "the", "of", "and", "a", "to", "in", "is",
 
 charList = ['abcdefghijklmnopqrstuvwxyz']
 
+import pprint
 ## Results page - this is where we POST ##
 @app.route("/results", methods=['GET','POST'])
 def results():
@@ -199,44 +200,48 @@ def results():
     ## Basic API call ##
     try:
         statuses = api.GetUserTimeline(screen_name=user, count="200")
-        s = statuses[0:12]
-        status_bodies = []
-        for status in statuses:
-            status_text = status.text.strip('\"')
-            status_bodies.append(status_text)
-            
-            markov_t = markov_t + " " + status_text + " "
-            mkText = markovify.Text(markov_t)
-            mkTweet = mkText.make_short_sentence(140)
-
-            rgx = re.compile("(\w[\w']*\w|\w)")
-
-            for tweet in status_bodies:
-                http_url_location = [(m.start(0), m.end(0)) for m in re.finditer("http",tweet)]
+        if statuses[0].user.screen_name != "":
+            s = statuses[0:12]
+            status_bodies = []
+            for status in statuses:
+                status_text = status.text.strip('\"')
+                status_bodies.append(status_text)
                 
-                if len(http_url_location) > 0:
-                    for loc in http_url_location:
-                        start = loc[0]
-                        end = loc[1]
+                markov_t = markov_t + " " + status_text + " "
+                mkText = markovify.Text(markov_t)
+                mkTweet = mkText.make_short_sentence(140)
 
-                        next_space = -1
-                        for i in range(start,len(tweet)):
-                            if tweet[i] == " ":
-                                next_space = i
-                        
-                        if next_space == -1:
-                            next_space = end
+                rgx = re.compile("(\w[\w']*\w|\w)")
 
-                        tweet = tweet[0:start] + tweet[next_space:]
+                for tweet in status_bodies:
+                    http_url_location = [(m.start(0), m.end(0)) for m in re.finditer("http",tweet)]
+                    
+                    if len(http_url_location) > 0:
+                        for loc in http_url_location:
+                            start = loc[0]
+                            end = loc[1]
 
-            words_in_tweets = rgx.findall(tweet)
-            for word in words_in_tweets:
-                if word not in blackList and len(word) > 3:
-                    words.append(word)
-            word_frequency = collections.Counter(words)
+                            next_space = -1
+                            for i in range(start,len(tweet)):
+                                if tweet[i] == " ":
+                                    next_space = i
+                            
+                            if next_space == -1:
+                                next_space = end
+
+                            tweet = tweet[0:start] + tweet[next_space:]
+
+                words_in_tweets = rgx.findall(tweet)
+                for word in words_in_tweets:
+                    if word not in blackList and len(word) > 3:
+                        words.append(word)
+                word_frequency = collections.Counter(words)
+        else:
+            user = ""
     except Exception as e:
         statuses = ""
         mkTweet = ""
+        user = ""
         print(e)
 
     ## Build page ##
