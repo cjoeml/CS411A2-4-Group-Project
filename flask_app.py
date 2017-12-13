@@ -88,23 +88,22 @@ def index():
         try:
             statuses = api.GetUserTimeline(screen_name=g.user['screen_name'], count="200")
             s = statuses[0:12]
-            status_bodies = []
+            rgx = re.compile("(\w[\w']*\w|\w)")
             
             for status in statuses:
                 status_text = status.text.strip('\"')
-                status_bodies.append(status_text)
-            
-                markov_t = markov_t + " " + status_text + " "
-                mkText = markovify.Text(markov_t)
-                mkTweet = mkText.make_short_sentence(140)
+
+                if rgx.search(status_text): 
+                    markov_t = markov_t + " " + status_text + " "
+                    mkText = markovify.Text(markov_t)
+                    mkTweet = mkText.make_short_sentence(140)
             
         except Exception as e:
             mkTweet = "Not enough tweets to display Markov tweet."
 
-        rgx = re.compile("(\w[\w']*\w|\w)")
 
-        for tweet in status_bodies:
-            words_in_tweets = rgx.findall(tweet)
+        for status in statuses:
+            words_in_tweets = rgx.findall(status.text.strip('\"'))
             for word in words_in_tweets:
                 if word not in blackList and len(word) > 3:
                     words.append(word)
